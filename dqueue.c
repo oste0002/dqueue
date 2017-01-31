@@ -9,7 +9,6 @@
 
 int dqueue_init(dqueue_head *head) {
 
-
   head->is_head = true;
   head->p_head =
     prealloc_init(PREALLOC_ALLOC_SIZE, PREALLOC_MAX_SIZE, sizeof(dqueue_link));
@@ -79,37 +78,43 @@ int dqueue_push_queue(dqueue_head *head, dqueue_head *push_head) {
 size_t dqueue_pop(dqueue_head *head, void *data) {
   size_t data_size;
   bool del_link = false;
-  pthread_mutex_t *p_lock;
-  prealloc_cell *p_cell;
-  prealloc_head *p_head;
+  dqueue_link *pop_link = head->pop;
 
   pthread_mutex_lock(&head->pop_lock);
 
-  if (head->pop == NULL) {
+  if (pop_link == NULL) {
     pthread_mutex_unlock(&head->pop_lock);
     return 0; }
 
-  data_size = head->pop->data_size;
-  memcpy(data, head->pop->data, head->pop->data_size);
+  // Copy data
+  data_size = pop_link->data_size;
+  memcpy(data, pop_link->data, data_size);
 
+  // Reduce queue
   pthread_mutex_lock(&head->pop->num_poppers_lock);
+  pop_link->num_poppers--;
 
-  head->pop->num_poppers--;
-  if ( head->pop->num_poppers <= 0 ) {
+  if ( pop_link->num_poppers <= 0 )
     del_link = true;
-    p_lock = head->pop->prealloc.p_lock;
-    p_cell = head->pop->prealloc.p_cell;
-    p_head = head->pop->prealloc.p_head; }
 
   pthread_mutex_unlock(&head->pop->num_poppers_lock);
 
-  head->pop = head->pop->next;
+
+  head->pop = pop_link->next;
   pthread_mutex_unlock(&head->pop_lock);
 
   if ( del_link == true ) {
-    pthread_mutex_lock(p_lock);
-    prealloc_del(p_head, p_cell);
-    pthread_mutex_unlock(p_lock); }
+    pthread_mutex_lock(pop_link->prealloc.p_lock);
+    prealloc_del(pop_link->prealloc.p_head, pop_link->prealloc.p_cell);
+    pthread_mutex_unlock(pop_link->prealloc.p_lock);
+
+    // If link is the head of an inserted sub-queue, 'is_head' is assigned false
+    // The caller of the inserted sub-queue may check for if
+    // (head->push == false). If it is, the caller may free the queue with 
+    // 'dqueue_destroy' and also free eventual data used for storage.
+    if ( pop_link->is_head == true )
+      pop_link->is_head = false;
+  }
 
   return data_size;
 }
