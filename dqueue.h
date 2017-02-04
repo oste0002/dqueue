@@ -38,6 +38,7 @@ struct Dqueue_Link {
   unsigned int num_poppers;
   pthread_mutex_t num_poppers_lock;
   size_t data_size;
+  prealloc_cell *p_cell;
   void *data;
 } __attribute__((packed));
 
@@ -53,9 +54,6 @@ struct Dqueue_Head{
 
 
 
-
-
-
 /* DQUEUE_INIT - Initializes a queue.
  *
  *  dqueue_head *head     - A pointer to the queue that will be initialized.
@@ -64,6 +62,7 @@ struct Dqueue_Head{
  *          !0: Failure
  */
 int dqueue_init(dqueue_head *head);
+
 
 
 /* DQUEUE_PUSH - Push data into the queue.
@@ -93,20 +92,22 @@ int dqueue_push_queue(dqueue_head *head, dqueue_head *push_head);
 
 
 
-/* DQUEUE_POP - Pop a link from the queue.
+/* DQUEUE_POP - Pop a link from the queue. If there is no other thread that will
+ *              be using this link, the queue link is deleted
  *
  *  dqueue_head *head     - A pointer to the queue that will be reduced.
  *  dqueue_link *data     - A pointer to the data that will be retreived.
  *
- * Return:  Size of the retreived data.
+ * Return:  Size of the retreived data. The return value is negated if the link
+ *          also is deleted.
  */
-size_t dqueue_pop(dqueue_head *head, void *data);
+ssize_t dqueue_pop(dqueue_head *head, void *data);
 
 
 /* DQUEUE_DESTROY - Destroys a queue.
  *
- *  dqueue_head *head     - A pointer to the queue that will be destroyed.
+ *  dqueue_head head     - A queue structure that will be destroyed.
  */
-void dqueue_destroy(dqueue_head *head);
+#define dqueue_destroy(head) prealloc_destroy(head.p_head)
 
 #endif

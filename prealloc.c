@@ -115,11 +115,6 @@ void prealloc_del(prealloc_head *head, prealloc_cell *cell) {
 }
 
 
-void *prealloc_memget(const prealloc_cell *cell) {
-	return(cell->data);
-}
-
-
 void prealloc_destroy(prealloc_head *head) {
 
 	unsigned int i;

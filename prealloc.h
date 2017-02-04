@@ -45,21 +45,10 @@ prealloc_head *prealloc_init(const uint32_t alloc_size, const uint32_t max_size,
  * prealloc_head *head    - A pointer to the prealloc array head, from which the
  *                          cell will be requested.
  *
- * Return:  A pointer to the cell that has been made available.
+ * Return:  Success: A pointer to the cell that has been made available.
+ *          Failure: NULL
  */
 prealloc_cell *prealloc_new(prealloc_head *head);
-
-
-/* PREALLOC_MEMGET - Request memory segment from a cell. When writing to this
- *                   memory segment, the user is responsible for not exceeding
- *                   its size. The size was specified on initialization
- *                   'PREALLOC_INIT()'.
- *  prealloc_cell *cell   - A pointer to the cell, from which the memory will
- *                          be requsted.
- *
- * Return:  A pointer to the memory segment.
- */
-void *prealloc_memget(const prealloc_cell *cell);
 
 
 /* PREALLOC_DEL - Delete a cell from the prealloc array.
@@ -78,6 +67,28 @@ void prealloc_del(prealloc_head *head, prealloc_cell *cell);
  *                          deleted.
  */
 void prealloc_destroy(prealloc_head *head);
+
+
+/* PREALLOC_CELLSIZE - Return the size of cells allocated within this
+ *                     preallocation set.
+ *
+ *  prealloc_head *head   - A pointer to the prealloc array head.
+ *
+ * Return: Cell size.
+ */
+#define prealloc_cellsize(head) head->cell_size
+
+
+/* PREALLOC_MEMGET - Request memory segment from a cell. When writing to this
+ *                   memory segment, the user is responsible for not exceeding
+ *                   its size. The size was specified on initialization
+ *                   'PREALLOC_INIT()'.
+ *  prealloc_cell *cell   - A pointer to the cell, from which the memory will
+ *                          be requsted.
+ *
+ * Return:  A pointer to the memory segment.
+ */
+#define prealloc_memget(cell) cell->data
 
 
 #endif
