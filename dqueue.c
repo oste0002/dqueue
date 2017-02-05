@@ -30,9 +30,15 @@ int dqueue_push(dqueue_head *head, int32_t num_poppers, void *data,
     size_t data_size) {
     prealloc_cell *p_cell;
 
+  if ((errno = pthread_mutex_lock(&head->p_head_lock)) != 0)
+    perror("Lock mutex");
   if ( (p_cell = prealloc_new(head->p_head)) == NULL)
     return 1;
+  if ((errno = pthread_mutex_unlock(&head->p_head_lock)) != 0)
+    perror("Unlock mutex");
+
   dqueue_link *push_link = (dqueue_link *) prealloc_memget(p_cell);
+
   push_link->prealloc.p_cell = p_cell;
   push_link->prealloc.p_head = head->p_head;
   push_link->prealloc.p_lock = &head->p_head_lock;
@@ -94,14 +100,12 @@ ssize_t dqueue_pop(dqueue_head *head, void *data) {
   bool del_link = false;
   dqueue_link *pop_link = head->pop;
 
+  // Return if queue is empty
+  if (pop_link == NULL)
+    return 0;
+
   if ((errno = pthread_mutex_lock(&head->pop_lock)) != 0)
     perror("Lock mutex");
-
-  // Return if queue is empty
-  if (pop_link == NULL) {
-    if ((errno = pthread_mutex_unlock(&head->pop_lock)) != 0)
-      perror("Unlock mutex");
-    return 0; }
 
   // Copy data
   data_size = pop_link->data_size;
@@ -139,3 +143,11 @@ ssize_t dqueue_pop(dqueue_head *head, void *data) {
   return data_size;
 }
 
+
+void dqueue_destroy(dqueue_head *head) {
+  if ((errno = pthread_mutex_lock(&head->p_head_lock)) != 0)
+    perror("Lock mutex");
+ prealloc_destroy(head->p_head);
+  if ((errno = pthread_mutex_unlock(&head->p_head_lock)) != 0)
+    perror("Unlock mutex");
+}

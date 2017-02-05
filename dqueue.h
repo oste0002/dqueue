@@ -37,9 +37,9 @@ struct Dqueue_Link {
   pthread_mutex_t next_lock;
   unsigned int num_poppers;
   pthread_mutex_t num_poppers_lock;
+  //prealloc_cell *p_cell;
   size_t data_size;
-  prealloc_cell *p_cell;
-  void *data;
+  const void *data;
 } __attribute__((packed));
 
 struct Dqueue_Head{
@@ -98,16 +98,39 @@ int dqueue_push_queue(dqueue_head *head, dqueue_head *push_head);
  *  dqueue_head *head     - A pointer to the queue that will be reduced.
  *  dqueue_link *data     - A pointer to the data that will be retreived.
  *
- * Return:  Size of the retreived data. The return value is negated if the link
- *          also is deleted.
+ * Return:  + Size of the retreived data.
+ *          - Size of the retreived data if the link also is deleted.
+ *          0 If the queue is empty.
  */
 ssize_t dqueue_pop(dqueue_head *head, void *data);
 
 
 /* DQUEUE_DESTROY - Destroys a queue.
  *
- *  dqueue_head head     - A queue structure that will be destroyed.
+ *  dqueue_head *head     - A pointer to a queue that will be destroyed.
  */
-#define dqueue_destroy(head) prealloc_destroy(head.p_head)
+void dqueue_destroy(dqueue_head *head);
+
+
+/* DQUEUE_IS_EMPTY - Checks if a dqueue is empty
+ *
+ *  dqueue_head *head     - A pointer to a queue that will be checked.
+ *
+ * Return:  true  - Queue is empty
+ *          false - Queue is not empty
+ */
+#define dqueue_is_empty(head) (head->pop == NULL ? true : false)
+
+
+/* DQUEUE_LAST_IS_POPPED - Checks if the last link of a dqueue is all popped
+ *                         (ready to free link data).
+ *
+ *  dqueue_head *head     - A pointer to a queue that will be checked.
+ *
+ * Return:  true  - Last link is all popped
+ *          false - Last link is not all popped or queue is empty
+ */
+#define dqueue_last_is_popped(head)    \
+((head->pop == NULL) && (head->pop->num_poppers == 0) ? true : false)
 
 #endif
